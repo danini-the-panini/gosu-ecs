@@ -7,6 +7,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Daniel Smith"]
   s.email       = 'jellymann@gmail.com'
   s.files       = ["lib/gosu-ecs.rb"]
+  s.add_runtime_dependency "gosu", [">= 0"]
   s.homepage    =
     'http://github.com/jellymann/gosu-ecs'
   s.license       = 'MIT'
