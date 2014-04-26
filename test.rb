@@ -6,7 +6,7 @@ class FooWindow < Gosu::Window
     super
     @engine = ECS::Engine.new
 
-    @engine.input_system(:down, :foo_down, [:foo]) do |id|
+    @engine.input_system(:down, :foo_down, [:foo]) do |id, e|
       if id == Gosu::KbSpace
         puts "Spaaaaace!"
       end
@@ -47,7 +47,7 @@ class FooWindow < Gosu::Window
   end
 
   def button_down id
-    @engine.button_down
+    @engine.button_down id
   end
 
   def update

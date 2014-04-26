@@ -33,7 +33,7 @@ module ECS
     end
 
     def input_system type, name, node, &block
-      @input_systems[type][name] = block
+      @input_systems[type][name] = [node, block]
       self
     end
 
@@ -54,16 +54,26 @@ module ECS
       self
     end
 
+    def each_entity n
+      @entities.each do |i, e|
+        if matches? e, n
+          yield e
+        end
+      end
+    end
+
     def button_down id
       @entities.each do |i, e|
-        each_with_entity @input_systems[:down], i, e
+        each_with_entity_input @input_systems[:down], i, e, id
       end
+      @input_state[id] = true
     end
 
     def button_up id
       @entities.each do |i, e|
-        each_with_entity @input_systems[:up], i, e
+        each_with_entity_input @input_systems[:up], i, e, id
       end
+      @input_state[id] = false
     end
 
     def update
@@ -103,6 +113,14 @@ module ECS
         sys.each_value do |n, s|
           if matches? e, n
             s.call e
+          end
+        end
+      end
+
+      def each_with_entity_input sys, i, e, id
+        sys.each_value do |n, s|
+          if matches? e, n
+            s.call id, e
           end
         end
       end
