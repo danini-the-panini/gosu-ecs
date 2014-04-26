@@ -5,16 +5,27 @@ class FooWindow < ECS::Window
   def initialize width = 800, height = 600, fullscreen = false
     super
 
-    down_system :foo_down do |id|
+    system :down, :foo_down do |id|
       if id == Gosu::KbSpace
         puts "Spaaaaace!"
       end
     end
 
-    system :foo_move do |dt, time|
+    system :update, :foo_move do |dt, time|
       each_entity [:position, :foo] do |e|
         e[:position][:x] = 400+Math::cos(time)*100
         e[:position][:y] = 300+Math::sin(time)*100
+      end
+    end
+
+    system :draw, :sprite_draw do
+      each_entity [:position, :sprite] do |e|
+        x = e[:position][:x]
+        y = e[:position][:y]
+        img = e[:sprite][:image]
+        dx = e[:sprite][:anchor][:x]*img.width
+        dy = e[:sprite][:anchor][:y]*img.height
+        img.draw x-dx, y-dy, 0
       end
     end
 

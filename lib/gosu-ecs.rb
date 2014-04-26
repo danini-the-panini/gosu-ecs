@@ -16,30 +16,18 @@ module ECS
       @last_time = Gosu::milliseconds
       @time = 0
 
-      @systems = {}
-      @up_systems = {}
-      @down_systems = {}
+      @systems = {:update => {}, :draw => {}, :up => {}, :down => {}}
       @entities = []
       @input_state = {}
     end
 
-    def system name, &block
-      @systems[name] = block
+    def system type, name, &block
+      @systems[type][name] = block
       self
     end
 
-    def up_system name, &block
-      @up_systems[name] = block
-      self
-    end
-
-    def down_system name, &block
-      @down_systems[name] = block
-      self
-    end
-
-    def remove_system name
-      @systems.delete name
+    def remove_system type, name
+      @systems[type].delete name
     end
 
     def add_node node, components
@@ -70,13 +58,13 @@ module ECS
     end
 
     def button_down id
-      @down_systems.each_value do |s|
+      @systems[:down].each_value do |s|
         s.call id
       end
     end
 
     def button_up id
-      @up_systems.each_value do |s|
+      @systems[:up].each_value do |s|
         s.call id
       end
     end
@@ -87,7 +75,7 @@ module ECS
       @time += dt
       @last_time = new_time
 
-      @systems.each_value do |s|
+      @systems[:update].each_value do |s|
         s.call dt, @time
       end
       @entities.delete_if { |e| e[:delete] }
@@ -96,13 +84,8 @@ module ECS
     end
 
     def draw
-      each_entity [:position, :sprite] do |e|
-        x = e[:position][:x]
-        y = e[:position][:y]
-        img = e[:sprite][:image]
-        dx = e[:sprite][:anchor][:x]*img.width
-        dy = e[:sprite][:anchor][:y]*img.height
-        img.draw x-dx, y-dy, 0
+      @systems[:draw].each_value do |s|
+        s.call
       end
     end
 
