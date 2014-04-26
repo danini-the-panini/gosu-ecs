@@ -17,11 +17,24 @@ module ECS
       @time = 0
 
       @systems = {}
+      @up_systems = {}
+      @down_systems = {}
       @entities = []
+      @input_state = {}
     end
 
     def system name, &block
       @systems[name] = block
+      self
+    end
+
+    def up_system name, &block
+      @up_systems[name] = block
+      self
+    end
+
+    def down_system name, &block
+      @down_systems[name] = block
       self
     end
 
@@ -56,6 +69,18 @@ module ECS
       end
     end
 
+    def button_down id
+      @down_systems.each_value do |s|
+        s.call id
+      end
+    end
+
+    def button_up id
+      @up_systems.each_value do |s|
+        s.call id
+      end
+    end
+
     def update
       new_time = Gosu::milliseconds
       dt = (new_time-@last_time).to_f*MILLISECOND
@@ -66,6 +91,8 @@ module ECS
         s.call dt, @time
       end
       @entities.delete_if { |e| e[:delete] }
+
+      @input_state.clear
     end
 
     def draw
