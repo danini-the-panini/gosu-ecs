@@ -32,7 +32,7 @@ module ECS
       self
     end
 
-    def input_system type, name, &block
+    def input_system type, name, node, &block
       @input_systems[type][name] = block
       self
     end
@@ -55,14 +55,14 @@ module ECS
     end
 
     def button_down id
-      @input_systems[:down].each_value do |n, s|
-        s.call id
+      @entities.each do |i, e|
+        each_with_entity @input_systems[:down], i, e
       end
     end
 
     def button_up id
-      @input_systems[:up].each_value do |n, s|
-        s.call id
+      @entities.each do |i, e|
+        each_with_entity @input_systems[:up], i, e
       end
     end
 
@@ -73,7 +73,7 @@ module ECS
       @last_time = new_time
 
       @entities.each do |i, e|
-        each_system_with_entitiy_new :update, i, e, dt
+        each_with_entity_new @systems[:update], i, e, dt
         @entities_new[i].delete if e[:delete]
       end
 
@@ -86,7 +86,7 @@ module ECS
 
     def draw
       @entities.each do |i, e|
-        each_system_with_entitiy :draw, i, e
+        each_with_entity @systems[:draw], i, e
       end
     end
 
@@ -99,16 +99,16 @@ module ECS
         true
       end
 
-      def each_system_with_entitiy type, i, e
-        @systems[type].each_value do |n, s|
+      def each_with_entity sys, i, e
+        sys.each_value do |n, s|
           if matches? e, n
-            s.call(e)
+            s.call e
           end
         end
       end
 
-      def each_system_with_entitiy_new type, i, e, dt
-        @systems[type].each_value do |n, s|
+      def each_with_entity_new sys, i, e, dt
+        sys.each_value do |n, s|
           if matches? e, n
             @entities_new[i].merge(s.call(dt, @time, e.select { |k,v| n.include? k }))
           end
