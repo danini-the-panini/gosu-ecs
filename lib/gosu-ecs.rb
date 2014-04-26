@@ -8,11 +8,9 @@ module ECS
     {:image => image, :anchor => anchor}
   end
 
-  class Window < Gosu::Window
+  class Engine
 
-    def initialize width, height, fullscreen, update_interval = 16.666666
-      super
-
+    def initialize
       @last_time = Gosu::milliseconds
       @time = 0
 
