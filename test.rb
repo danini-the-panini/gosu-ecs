@@ -6,28 +6,25 @@ class FooWindow < Gosu::Window
     super
     @engine = ECS::Engine.new
 
-    @engine.system :down, :foo_down do |id|
+    @engine.input_system(:down, :foo_down) do |id|
       if id == Gosu::KbSpace
         puts "Spaaaaace!"
       end
     end
 
-    @engine.system :update, :foo_move do |dt, time|
-      @engine.each_entity [:position, :foo] do |e|
-        e[:position][:x] = 400+Math::cos(time)*100
-        e[:position][:y] = 300+Math::sin(time)*100
-      end
+    @engine.system(:update, :foo_move, [:position, :foo]) do |dt, time, e|
+      e[:position][:x] = 400+Math::cos(time)*100
+      e[:position][:y] = 300+Math::sin(time)*100
+      e
     end
 
-    @engine.system :draw, :sprite_draw do
-      @engine.each_entity [:position, :sprite] do |e|
-        x = e[:position][:x]
-        y = e[:position][:y]
-        img = e[:sprite][:image]
-        dx = e[:sprite][:anchor][:x]*img.width
-        dy = e[:sprite][:anchor][:y]*img.height
-        img.draw x-dx, y-dy, 0
-      end
+    @engine.system(:draw, :sprite_draw, [:position, :sprite]) do |e|
+      x = e[:position][:x]
+      y = e[:position][:y]
+      img = e[:sprite][:image]
+      dx = e[:sprite][:anchor][:x]*img.width
+      dy = e[:sprite][:anchor][:y]*img.height
+      img.draw x-dx, y-dy, 0
     end
 
     foo_image = Gosu::Image.from_text self, "FOO!", Gosu::default_font_name, 30
