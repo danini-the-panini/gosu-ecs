@@ -61,6 +61,10 @@ module ECS
       end
     end
 
+    def down? id
+      @input_state[id]
+    end
+
     def button_down id
       @entities.each do |i, e|
         each_with_entity_input @input_systems[:down], i, e, id
