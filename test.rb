@@ -35,13 +35,13 @@ class FooWindow < Gosu::Window
     baz_image = Gosu::Image.from_text self, "BAZ!", Gosu::default_font_name, 30
 
     @engine.add_entity({
-      :sprite => ECS::make_sprite(foo_image),
+      :sprite => make_sprite(foo_image),
       :position => {:x => 0, :y => 0},
       :foo => true
     })
 
     @engine.add_entity({
-      :sprite => ECS::make_sprite(baz_image),
+      :sprite => make_sprite(baz_image),
       :position => {:x => 100, :y => 100}
     })
   end
@@ -60,6 +60,10 @@ class FooWindow < Gosu::Window
 
   def draw
     @engine.draw
+  end
+
+  def make_sprite image, anchor={:x => 0.5, :y => 0.5}
+    {:image => image, :anchor => anchor}
   end
 
 end

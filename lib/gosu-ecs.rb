@@ -4,10 +4,6 @@ module ECS
  
   MILLISECOND = 0.001
 
-  def self.make_sprite image, anchor={:x => 0.5, :y => 0.5}
-    {:image => image, :anchor => anchor}
-  end
-
   class Engine
 
     def initialize
@@ -65,6 +61,15 @@ module ECS
       @input_state[id]
     end
 
+    def pause
+      @input_state.clear
+    end
+
+    def unpause
+      @input_state.clear
+      @last_time = Gosu::milliseconds
+    end
+
     def button_down id
       @entities.each do |i, e|
         each_with_entity_input @input_systems[:down], i, e, id
@@ -100,7 +105,6 @@ module ECS
       @entities = @entities_t1
       @entities_t1 = temp
 
-      @input_state.clear
       @updating = false
     end
 
