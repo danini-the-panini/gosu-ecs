@@ -18,7 +18,7 @@ module ECS
       @systems = {:update => {}, :draw => {}}
       @input_systems = {:up => {}, :down => {}}
       @entities = {}
-      @entities_new = {}
+      @entities_t1 = {}
       @input_state = {}
     end
 
@@ -43,8 +43,7 @@ module ECS
     end
 
     def add_entity entity
-      @entities[@entity_num] = entity
-      @entities_new[@entity_num] ||= entity
+      (@updating ? @entities_t1 : @entities)[@entity_num] = entity
       @entity_num += 1
       self
     end
@@ -77,21 +76,28 @@ module ECS
     end
 
     def update
+      @updating = true
       new_time = Gosu::milliseconds
       dt = (new_time-@last_time).to_f*MILLISECOND
       @time += dt
       @last_time = new_time
 
-      @entities.each do |i, e|
+      @entities.delete_if do |i, e|
+        @entities_t1[i] = e unless @entities_t1.include?(i)
         each_with_entity_new @systems[:update], i, e, dt
-        @entities_new[i].delete if e[:delete]
+
+        e = @entities_t1[i]
+        @entities_t1.delete i if e[:delete]
+        e[:delete]
       end
 
+      # swap entity buffers
       temp = @entities
-      @entities = @entities_new
-      @entities_new = temp
+      @entities = @entities_t1
+      @entities_t1 = temp
 
       @input_state.clear
+      @updating = false
     end
 
     def draw
@@ -127,8 +133,8 @@ module ECS
 
       def each_with_entity_new sys, i, e, dt
         sys.each_value do |n, s|
-          if matches? e, n
-            @entities_new[i].merge(s.call(dt, @time, e.select { |k,v| n.include? k }))
+          if matches?(e, n) && !@entities_t1[i].nil?
+            @entities_t1[i].merge!(s.call(dt, @time, e.select { |k,v| n.include? k }))
           end
         end
       end

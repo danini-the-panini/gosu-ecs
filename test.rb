@@ -15,6 +15,10 @@ class FooWindow < Gosu::Window
     @engine.system(:update, :foo_move, [:position, :foo]) do |dt, time, e|
       e[:position][:x] = 400+Math::cos(time)*100
       e[:position][:y] = 300+Math::sin(time)*100
+      if time > 5
+        puts "Time's up!"
+        e[:delete] = true
+      end
       e
     end
 
