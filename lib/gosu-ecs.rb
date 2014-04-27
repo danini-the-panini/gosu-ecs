@@ -134,7 +134,7 @@ module ECS
       def each_with_entity_new sys, i, e, dt
         sys.each_value do |n, s|
           if matches?(e, n) && !@entities_t1[i].nil?
-            @entities_t1[i].merge!(s.call(dt, @time, e.select { |k,v| n.include? k }))
+            @entities_t1[i].merge!(s.call(dt, @time, e))
           end
         end
       end
