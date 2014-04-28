@@ -62,6 +62,14 @@ module ECS
       self
     end
 
+    def inject_state state
+      state.each do |k,c|
+        c[:entities].each do |i,e|
+          add_entity e, k
+        end
+      end
+    end
+
     def remove_entity entity
       entity[:delete] = true
       self
@@ -80,11 +88,17 @@ module ECS
     end
 
     def entities
-      @chunks.reduce({}) do |entities,c|
+      @chunks.values.reduce({}) do |entities,c|
         if c[:active]
           entities.merge(c[:entities])
+        else
+          entities
         end
       end
+    end
+
+    def chunks
+      @chunks
     end
 
     def down? id
