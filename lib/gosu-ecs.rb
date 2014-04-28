@@ -40,6 +40,7 @@ module ECS
 
     def add_entity entity
       (@updating ? @entities_t1 : @entities)[@entity_num] = entity
+      entity[:id] = @entity_num
       @entity_num += 1
       self
     end
@@ -55,6 +56,14 @@ module ECS
           yield e
         end
       end
+    end
+
+    def entity_count n
+      @entities.reduce(0) { |sum,e| sum + (matches?(e[1],n) ? 1 : 0) }
+    end
+
+    def entities
+      @entities.values
     end
 
     def down? id
@@ -96,6 +105,7 @@ module ECS
         each_with_entity_new @systems[:update], i, e, dt
 
         e = @entities_t1[i]
+        e.delete_if { |k,v| v.nil? }
         @entities_t1.delete i if e[:delete]
         e[:delete]
       end

@@ -8,7 +8,7 @@ class FooWindow < Gosu::Window
 
     @engine.input_system(:down, :foo_down, [:foo]) do |id, e|
       if id == Gosu::KbSpace
-        puts "Spaaaaace!"
+        puts @engine.entity_count([:position])
       end
     end
 
