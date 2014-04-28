@@ -13,8 +13,10 @@ module ECS
       @entity_num = 0
       @systems = {:update => {}, :draw => {}}
       @input_systems = {:up => {}, :down => {}}
-      @entities = {}
-      @entities_t1 = {}
+      @chunks = {
+        :default => gen_chunk
+      }
+      @chunks_to_add = {}
       @input_state = {}
     end
 
@@ -38,8 +40,23 @@ module ECS
       self
     end
 
-    def add_entity entity
-      (@updating ? @entities_t1 : @entities)[@entity_num] = entity
+    def activate_chunk name, value=true
+      chunk = create_chunk(name)
+      chunk[:active] = value
+    end
+
+    def create_chunk name
+      chunk = @chunks[name] || @chunks_to_add[name]
+      if chunk.nil?
+        chunk = gen_chunk
+        (@updating ? @chunks_to_add : @chunks)[name] = (chunk)
+      end
+      chunk
+    end
+
+    def add_entity entity, chunk_name = :default
+      chunk = create_chunk(chunk_name)
+      chunk[@updating ? :entities_t1 : :entities][@entity_num] = entity
       entity[:id] = @entity_num
       @entity_num += 1
       self
@@ -51,19 +68,23 @@ module ECS
     end
 
     def each_entity n
-      @entities.each do |i, e|
-        if matches? e, n
-          yield e
+      @chunks.each_value do |c|
+        if c[:active]
+          c[:entities].each do |i, e|
+            if matches? e, n
+              yield e
+            end
+          end
         end
       end
     end
 
-    def entity_count n
-      @entities.reduce(0) { |sum,e| sum + (matches?(e[1],n) ? 1 : 0) }
-    end
-
     def entities
-      @entities.values
+      @chunks.reduce({}) do |entities,c|
+        if c[:active]
+          entities.merge(c[:entities])
+        end
+      end
     end
 
     def down? id
@@ -80,15 +101,23 @@ module ECS
     end
 
     def button_down id
-      @entities.each do |i, e|
-        each_with_entity_input @input_systems[:down], i, e, id
+      @chunks.each_value do |c|
+        if c[:active]
+          c[:entities].each do |i, e|
+            each_with_entity_input @input_systems[:down], i, e, id
+          end
+        end
       end
       @input_state[id] = true
     end
 
     def button_up id
-      @entities.each do |i, e|
-        each_with_entity_input @input_systems[:up], i, e, id
+      @chunks.each_value do |c|
+        if c[:active]
+          c[:entities].each do |i, e|
+            each_with_entity_input @input_systems[:up], i, e, id
+          end
+        end
       end
       @input_state[id] = false
     end
@@ -100,27 +129,36 @@ module ECS
       @time += dt
       @last_time = new_time
 
-      @entities.delete_if do |i, e|
-        @entities_t1[i] = e unless @entities_t1.include?(i)
-        each_with_entity_new @systems[:update], i, e, dt
+      @chunks.each_value do |c|
+        c[:entities].delete_if do |i, e|
+          c[:entities_t1][i] = e unless c[:entities_t1].include?(i)
+          each_with_entity_new @systems[:update], i, e, dt, c
 
-        e = @entities_t1[i]
-        e.delete_if { |k,v| v.nil? }
-        @entities_t1.delete i if e[:delete]
-        e[:delete]
+          e = c[:entities_t1][i]
+          e.delete_if { |k,v| v.nil? }
+          c[:entities_t1].delete i if e[:delete]
+          e[:delete]
+        end
+
+        # swap entity buffers
+        temp = c[:entities]
+        c[:entities] = c[:entities_t1]
+        c[:entities_t1] = temp
       end
 
-      # swap entity buffers
-      temp = @entities
-      @entities = @entities_t1
-      @entities_t1 = temp
+      @chunks.merge! @chunks_to_add
+      @chunks_to_add.clear
 
       @updating = false
     end
 
     def draw
-      @entities.each do |i, e|
-        each_with_entity @systems[:draw], i, e
+      @chunks.each_value do |c|
+        if c[:active]
+          c[:entities].each do |i, e|
+            each_with_entity @systems[:draw], i, e
+          end
+        end
       end
     end
 
@@ -149,12 +187,20 @@ module ECS
         end
       end
 
-      def each_with_entity_new sys, i, e, dt
+      def each_with_entity_new sys, i, e, dt, chunk
         sys.each_value do |n, s|
-          if matches?(e, n) && !@entities_t1[i].nil?
-            @entities_t1[i].merge!(s.call(dt, @time, e))
+          if matches?(e, n) && !chunk[:entities_t1][i].nil?
+            chunk[:entities_t1][i].merge!(s.call(dt, @time, e))
           end
         end
+      end
+
+      def gen_chunk
+        {
+          :entities => {},
+          :entities_t1 => {},
+          :active => true
+        }
       end
 
   end
