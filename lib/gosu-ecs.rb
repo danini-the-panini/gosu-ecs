@@ -11,7 +11,7 @@ module ECS
       @time = 0
 
       @entity_num = 0
-      @systems = {:update => {}, :draw => {}}
+      @systems = {:update => {}, :draw => {}, :once => {}}
       @input_systems = {:up => {}, :down => {}}
       @chunks = {
         :default => gen_chunk
@@ -56,7 +56,7 @@ module ECS
 
     def add_entity entity, chunk_name = :default
       chunk = create_chunk(chunk_name)
-      chunk[@updating ? :entities_t1 : :entities][@entity_num] = entity
+      (@updating ? chunk[:entities_t1] : chunk[:entities])[@entity_num] = entity
       entity[:id] = @entity_num
       @entity_num += 1
       self
@@ -85,6 +85,16 @@ module ECS
           end
         end
       end
+    end
+
+    def get_entity id
+      entity = nil
+      @chunks.each_value do |c|
+        if c[:active]
+          break unless (entity = c[:entities][id]).nil?
+        end
+      end
+      entity
     end
 
     def entities
@@ -117,7 +127,7 @@ module ECS
     def button_down id
       @chunks.each_value do |c|
         if c[:active]
-          c[:entities].each do |i, e|
+          c[:entities_t1].each do |i, e|
             each_with_entity_input @input_systems[:down], i, e, id
           end
         end
@@ -128,7 +138,7 @@ module ECS
     def button_up id
       @chunks.each_value do |c|
         if c[:active]
-          c[:entities].each do |i, e|
+          c[:entities_t1].each do |i, e|
             each_with_entity_input @input_systems[:up], i, e, id
           end
         end
@@ -143,15 +153,23 @@ module ECS
       @time += dt
       @last_time = new_time
 
-      @chunks.each_value do |c|
+      @systems[:once].each_value do |s|
+        s.call(dt,t)
+      end
+
+      @chunks.each do |ci, c|
         c[:entities].delete_if do |i, e|
           c[:entities_t1][i] = e unless c[:entities_t1].include?(i)
-          each_with_entity_new @systems[:update], i, e, dt, c
+          each_with_entity_new @systems[:update], i, e, dt, ci
 
           e = c[:entities_t1][i]
           e.delete_if { |k,v| v.nil? }
-          c[:entities_t1].delete i if e[:delete]
-          e[:delete]
+          should_delete = e[:chunk] || e[:delete]
+          if e[:chunk]
+            add_entity e, e.delete(:chunk)
+          end
+          c[:entities_t1].delete i if should_delete
+          should_delete
         end
 
         # swap entity buffers
@@ -203,8 +221,8 @@ module ECS
 
       def each_with_entity_new sys, i, e, dt, chunk
         sys.each_value do |n, s|
-          if matches?(e, n) && !chunk[:entities_t1][i].nil?
-            chunk[:entities_t1][i].merge!(s.call(dt, @time, e))
+          if matches?(e, n) && !@chunks[chunk][:entities_t1][i].nil?
+            @chunks[chunk][:entities_t1][i].merge!(s.call(dt, @time, e, chunk))
           end
         end
       end
